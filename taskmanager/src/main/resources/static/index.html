@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chronos — Things 3 Edition</title>
+
+  <!-- Typography: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            things: {
+              blue: '#2489f4',
+              star: '#ecc94b',
+              upcoming: '#e53e3e',
+              someday: '#dd6b20',
+              logbook: '#38a169',
+              sidebarDark: '#1a1b1e',
+              contentDark: '#121316',
+              cardDark: '#202227',
+              borderDark: '#2b2d34'
+            }
+          },
+          boxShadow: {
+            'things': '0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
+            'float': '0 8px 24px rgba(36, 137, 244, 0.35)',
+            'modal': '0 24px 48px -12px rgba(0,0,0,0.35)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Phosphor Icons CDN -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    /* Things 3 Smooth Scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    .dark ::-webkit-scrollbar-thumb { background: #2b2d34; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+
+    .page-view { display: none; }
+    .page-view.active { display: block; animation: thingsFade 0.14s ease-out; }
+
+    @keyframes thingsFade {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+    }
+  </style>
+</head>
+
+<body class="bg-[#f5f6f8] dark:bg-things-contentDark text-[#1e2022] dark:text-[#f0f2f5] font-sans antialiased min-h-screen flex flex-col md:flex-row transition-colors duration-150">
+
+  <!-- ================= NOTIFICATION TOAST ================= -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full"></div>
+
+  <!-- ================= MOBILE HEADER ================= -->
+  <header class="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-things-sidebarDark border-b border-neutral-200 dark:border-things-borderDark sticky top-0 z-30">
+    <div class="flex items-center space-x-2">
+      <div class="w-6 h-6 rounded-lg bg-things-blue flex items-center justify-center text-white font-bold text-xs shadow-sm">
+        <i class="ph ph-check-bold"></i>
+      </div>
+      <span class="font-semibold text-sm">Things 3</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <button onclick="toggleTheme()" class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500">
+        <i class="ph ph-sun text-base" id="mobileThemeIcon"></i>
+      </button>
+      <button onclick="toggleMobileNav()" class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500">
+        <i class="ph ph-list text-lg"></i>
+      </button>
+    </div>
+  </header>
+
+  <div id="mobileNavBackdrop" onclick="toggleMobileNav()" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 hidden md:hidden"></div>
+
+  <!-- ================= THINGS 3 SIDEBAR ================= -->
+  <aside id="sidebarNav" class="fixed md:static inset-y-0 left-0 -translate-x-full md:translate-x-0 w-64 bg-[#f8f9fa] dark:bg-things-sidebarDark border-r border-[#e8eaed] dark:border-things-borderDark p-3 flex flex-col justify-between z-40 shrink-0 transition-transform duration-150 ease-out h-screen overflow-y-auto">
+    <div class="space-y-4">
+      
+      <!-- Top Profile & Workspace Header -->
+      <div class="flex items-center justify-between px-2 pt-1 pb-1">
+        <div class="flex items-center gap-2">
+          <div class="w-5 h-5 rounded bg-things-blue flex items-center justify-center text-white text-xs font-bold shadow-sm">
+            <i class="ph ph-check-bold text-[11px]"></i>
+          </div>
+          <span class="font-semibold text-xs tracking-tight">Chronos / Things</span>
+        </div>
+        <button onclick="toggleTheme()" class="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200">
+          <i class="ph ph-sun text-sm" id="themeIcon"></i>
+        </button>
+      </div>
+
+      <!-- Google Login Box (Directly below App Title) -->
+      <div id="googleAuthBox" class="p-2.5 rounded-xl bg-white dark:bg-things-cardDark border border-neutral-200/80 dark:border-things-borderDark shadow-sm">
+        <div id="loggedOutState" class="space-y-1.5">
+          <div class="flex items-center justify-between text-[10px] text-neutral-400 font-mono">
+            <span>Google Account</span>
+            <span>Sync</span>
+          </div>
+          <div id="g_id_onload"
+               data-client_id="768963107027-3bdnfiu53s31lst8o9kcdrgdo7jqqmum.apps.googleusercontent.com"
+               data-context="signin"
+               data-ux_mode="popup"
+               data-callback="handleCredentialResponse"
+               data-auto_prompt="false">
+          </div>
+          <div class="g_id_signin flex justify-center"
+               data-type="standard"
+               data-shape="pill"
+               data-theme="outline"
+               data-text="signin"
+               data-size="small"
+               data-logo_alignment="left">
+          </div>
+        </div>
+
+        <div id="loggedInState" class="hidden flex items-center justify-between">
+          <div class="flex items-center gap-2 truncate">
+            <img id="userImg" src="" alt="User" class="w-6 h-6 rounded-full border border-neutral-200 dark:border-neutral-700 object-cover" />
+            <div class="truncate">
+              <p id="userFullName" class="text-xs font-medium truncate">User</p>
+              <p id="userMail" class="text-[10px] text-neutral-400 font-mono truncate">user@gmail.com</p>
+            </div>
+          </div>
+          <button onclick="logoutGoogle()" title="Sign Out" class="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 rounded transition">
+            <i class="ph ph-sign-out text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Things 3 Core Navigation Hierarchy -->
+      <nav class="space-y-0.5 text-xs">
+        
+        <!-- Today (Starred View) -->
+        <button onclick="navigateTo('dashboard')" class="nav-item active flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/60 transition" data-page="dashboard">
+          <span class="flex items-center gap-2.5">
+            <i class="ph-fill ph-star text-amber-500 text-sm"></i>
+            <span>Today</span>
+          </span>
+          <span id="navTodayBadge" class="text-[10px] font-mono text-neutral-400">0</span>
+        </button>
+
+        <!-- Inbox / All Tasks -->
+        <button onclick="navigateTo('tasks')" class="nav-item flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/60 transition" data-page="tasks">
+          <span class="flex items-center gap-2.5">
+            <i class="ph ph-tray text-things-blue text-sm"></i>
+            <span>Inbox</span>
+          </span>
+          <span id="navTaskCountBadge" class="text-[10px] font-mono text-neutral-400">0</span>
+        </button>
+
+        <!-- Upcoming / Calendar -->
+        <button onclick="navigateTo('calendar')" class="nav-item flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/60 transition" data-page="calendar">
+          <span class="flex items-center gap-2.5">
+            <i class="ph ph-calendar text-rose-500 text-sm"></i>
+            <span>Upcoming</span>
+          </span>
+        </button>
+
+        <!-- Anytime / Daily Planner Schedule -->
+        <button onclick="navigateTo('planner')" class="nav-item flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/60 transition" data-page="planner">
+          <span class="flex items-center gap-2.5">
+            <i class="ph ph-layers text-teal-500 text-sm"></i>
+            <span>Anytime</span>
+          </span>
+        </button>
+
+        <!-- Someday / Eisenhower Matrix -->
+        <button onclick="navigateTo('matrix')" class="nav-item flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/60 transition" data-page="matrix">
+          <span class="flex items-center gap-2.5">
+            <i class="ph ph-folder-dashed text-amber-600 text-sm"></i>
+            <span>Someday</span>
+          </span>
+        </button>
+
+        <!-- Logbook (Archive of Finished Work) -->
+        <button onclick="navigateTo('analytics')" class="nav-item flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/60 transition" data-page="analytics">
+          <span class="flex items-center gap-2.5">
+            <i class="ph ph-book-open text-emerald-600 text-sm"></i>
+            <span>Logbook</span>
+          </span>
+          <span id="navLogbookBadge" class="text-[10px] font-mono text-emerald-600 font-semibold">0</span>
+        </button>
+
+        <div class="pt-3 pb-1 px-2 text-[10px] font-mono uppercase tracking-wider text-neutral-400 dark:text-neutral-500">Utilities</div>
+
+        <!-- Focus Timer -->
+        <button onclick="navigateTo('focus')" class="nav-item flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/60 transition" data-page="focus">
+          <span class="flex items-center gap-2.5">
+            <i class="ph ph-timer text-indigo-500 text-sm"></i>
+            <span>Focus Mode</span>
+          </span>
+          <span id="focusActivePulse" class="hidden w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+        </button>
+
+        <!-- Settings -->
+        <button onclick="navigateTo('settings')" class="nav-item flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/60 transition" data-page="settings">
+          <span class="flex items-center gap-2.5">
+            <i class="ph ph-gear text-neutral-400 text-sm"></i>
+            <span>Preferences</span>
+          </span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Sidebar Bottom Status -->
+    <div class="px-2 py-2 border-t border-neutral-200 dark:border-things-borderDark flex items-center justify-between text-[11px] font-mono text-neutral-400">
+      <span class="flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Synced
+      </span>
+      <span id="storageCountBadge">0 tasks</span>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN WORKSPACE ================= -->
+  <main class="flex-1 h-screen overflow-y-auto p-4 sm:p-7 md:p-10 space-y-7 max-w-4xl mx-auto w-full relative">
+
+    <!-- PAGE 1: TODAY (OVERVIEW) -->
+    <section id="page-dashboard" class="page-view active space-y-6">
+      
+      <!-- Things 3 Header -->
+      <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 pb-2">
+        <div>
+          <div class="flex items-center gap-2">
+            <i class="ph-fill ph-star text-amber-500 text-xl sm:text-2xl"></i>
+            <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100" id="greetingHeading">Today</h2>
+          </div>
+          <p class="text-xs text-neutral-400 font-mono mt-1" id="todayDateSubtitle">Wednesday, October 7</p>
+        </div>
+        <div class="flex items-center gap-2 font-mono text-xs text-neutral-400">
+          <span id="currentTimeDisplay">--:--:--</span>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-3 shadow-things">
+          <div class="text-[10px] font-mono uppercase text-neutral-400">To Do</div>
+          <div class="text-2xl font-bold mt-0.5" id="metricPending">0</div>
+          <div class="text-[10px] text-neutral-400 font-mono mt-0.5" id="metricWorkRemaining">0h left</div>
+        </div>
+
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-3 shadow-things">
+          <div class="text-[10px] font-mono uppercase text-rose-500">Overdue / Due</div>
+          <div class="text-2xl font-bold text-rose-500 mt-0.5" id="metricOverdue">0</div>
+          <div class="text-[10px] text-neutral-400 font-mono mt-0.5" id="metricDueToday">0 today</div>
+        </div>
+
+        <!-- Completed Metrics: Today & Lifetime Total -->
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-3 shadow-things">
+          <div class="text-[10px] font-mono uppercase text-emerald-600">Completed</div>
+          <div class="flex items-baseline gap-1 mt-0.5">
+            <span class="text-2xl font-bold text-emerald-600" id="metricCompletedToday">0</span>
+            <span class="text-[10px] text-neutral-400 font-mono">Today</span>
+          </div>
+          <div class="text-[10px] text-neutral-400 font-mono mt-1 pt-1 border-t border-neutral-100 dark:border-neutral-800 flex justify-between">
+            <span>Lifetime:</span>
+            <span class="font-semibold text-neutral-700 dark:text-neutral-300" id="metricTotalCompleted">0</span>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-3 shadow-things">
+          <div class="text-[10px] font-mono uppercase text-neutral-400">Focus Window</div>
+          <div class="text-2xl font-bold mt-0.5" id="metricCapacity">4.0h</div>
+          <div class="text-[10px] text-neutral-400 font-mono mt-0.5">Daily quota</div>
+        </div>
+      </div>
+
+      <!-- Spotlight: High Priority Target -->
+      <div id="spotlightCard" class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-2xl p-4 sm:p-5 shadow-things">
+        <div id="spotlightContent"></div>
+      </div>
+
+      <!-- Dual Section: Warnings & Today's Starred Tasks -->
+      <div class="space-y-4">
+        <h3 class="text-xs font-semibold uppercase tracking-wider font-mono text-neutral-400">Scheduled Actions</h3>
+        <div id="topPriorityContainer" class="space-y-2"></div>
+      </div>
+
+      <div class="space-y-4">
+        <h3 class="text-xs font-semibold uppercase tracking-wider font-mono text-neutral-400">Timeline Alerts</h3>
+        <div id="riskListContainer" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- PAGE 2: INBOX / ALL TASKS -->
+    <section id="page-tasks" class="page-view space-y-5">
+      <div class="flex items-center justify-between pb-2">
+        <div class="flex items-center gap-2">
+          <i class="ph ph-tray text-things-blue text-2xl"></i>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Inbox</h2>
+        </div>
+        <div class="flex items-center gap-1.5 bg-neutral-200/60 dark:bg-neutral-800 p-1 rounded-lg text-xs font-medium">
+          <button id="viewModeListBtn" onclick="setTaskViewMode('list')" class="px-2.5 py-1 rounded bg-white dark:bg-neutral-700 shadow-sm">List</button>
+          <button id="viewModeBoardBtn" onclick="setTaskViewMode('board')" class="px-2.5 py-1 rounded text-neutral-500">Board</button>
+        </div>
+      </div>
+
+      <!-- Things 3 Fast Entry Input -->
+      <form id="inlineTaskForm" onsubmit="handleInlineTaskSubmit(event)" class="bg-white dark:bg-things-cardDark border border-neutral-200/80 dark:border-things-borderDark rounded-xl p-2.5 flex flex-col sm:flex-row gap-2 shadow-things text-xs">
+        <div class="relative flex-1 flex items-center">
+          <i class="ph ph-circle text-neutral-400 text-sm ml-2"></i>
+          <input type="text" id="inlineTaskTitle" required placeholder="New To-Do in Inbox... (Press Enter)" class="w-full bg-transparent pl-2.5 pr-2 py-1 text-xs" />
+        </div>
+        <div class="flex items-center gap-1.5">
+          <input type="text" id="inlineTaskCategory" placeholder="Tag / Area" class="w-24 px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded-md text-[11px] font-mono" />
+          <input type="number" id="inlineTaskDuration" min="5" step="5" value="60" title="Minutes" class="w-14 px-1 py-1 bg-neutral-100 dark:bg-neutral-800 rounded-md text-[11px] font-mono text-center" />
+          <button type="submit" class="px-3 py-1 bg-things-blue text-white rounded-md font-medium">Add</button>
+        </div>
+      </form>
+
+      <!-- Search & Filters -->
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <div class="relative flex-1 min-w-[160px]">
+          <i class="ph ph-magnifying-glass absolute left-2.5 top-2 text-neutral-400"></i>
+          <input type="text" id="taskSearchInput" placeholder="Quick find..." class="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-things-cardDark border border-neutral-200/80 dark:border-things-borderDark rounded-lg text-xs shadow-sm" />
+        </div>
+        <select id="filterPriority" class="bg-white dark:bg-things-cardDark border border-neutral-200/80 dark:border-things-borderDark rounded-lg px-2.5 py-1.5 font-mono text-[11px]">
+          <option value="ALL">Priority: All</option>
+          <option value="CRITICAL">Critical</option>
+          <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="LOW">Low</option>
+        </select>
+        <select id="filterStatus" class="bg-white dark:bg-things-cardDark border border-neutral-200/80 dark:border-things-borderDark rounded-lg px-2.5 py-1.5 font-mono text-[11px]">
+          <option value="ACTIVE">Pending</option>
+          <option value="Pending">To Do</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+          <option value="ALL">All Items</option>
+        </select>
+        <select id="filterCategory" class="bg-white dark:bg-things-cardDark border border-neutral-200/80 dark:border-things-borderDark rounded-lg px-2.5 py-1.5 font-mono text-[11px]">
+          <option value="ALL">All Areas</option>
+        </select>
+        <select id="sortBy" class="bg-white dark:bg-things-cardDark border border-neutral-200/80 dark:border-things-borderDark rounded-lg px-2.5 py-1.5 font-mono text-[11px]">
+          <option value="score_desc">Sort: Priority</option>
+          <option value="deadline_asc">Sort: Deadline</option>
+          <option value="duration_asc">Sort: Duration</option>
+        </select>
+      </div>
+
+      <!-- List Container -->
+      <div id="taskListView">
+        <div id="fullTaskList" class="space-y-1.5"></div>
+      </div>
+
+      <!-- Kanban View -->
+      <div id="taskBoardView" class="hidden grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-3 min-h-[400px]">
+          <div class="flex justify-between items-center text-xs pb-2 border-b border-neutral-100 dark:border-neutral-800 font-mono">
+            <span>To Do</span>
+            <span id="boardCountPending" class="text-neutral-400">0</span>
+          </div>
+          <div id="boardColumnPending" class="space-y-2 mt-2"></div>
+        </div>
+
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-3 min-h-[400px]">
+          <div class="flex justify-between items-center text-xs pb-2 border-b border-neutral-100 dark:border-neutral-800 font-mono">
+            <span>In Progress</span>
+            <span id="boardCountInProgress" class="text-neutral-400">0</span>
+          </div>
+          <div id="boardColumnInProgress" class="space-y-2 mt-2"></div>
+        </div>
+
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-3 min-h-[400px]">
+          <div class="flex justify-between items-center text-xs pb-2 border-b border-neutral-100 dark:border-neutral-800 font-mono">
+            <span>Completed</span>
+            <span id="boardCountCompleted" class="text-neutral-400">0</span>
+          </div>
+          <div id="boardColumnCompleted" class="space-y-2 mt-2"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 3: ANYTIME (DAILY PLANNER) -->
+    <section id="page-planner" class="page-view space-y-5">
+      <div class="flex items-center gap-2 pb-2">
+        <i class="ph ph-layers text-teal-500 text-2xl"></i>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Anytime Schedule</h2>
+      </div>
+
+      <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-things">
+        <div class="flex items-center gap-2">
+          <span class="font-mono text-neutral-400">Capacity:</span>
+          <input type="number" id="plannerCapacityInput" min="0.5" max="16" step="0.5" value="4.0" class="w-16 bg-neutral-100 dark:bg-neutral-800 rounded px-2 py-1 font-mono text-center" />
+          <button onclick="setPlannerCapacity(2.0)" class="px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded">2h</button>
+          <button onclick="setPlannerCapacity(4.0)" class="px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded">4h</button>
+          <button onclick="setPlannerCapacity(6.0)" class="px-2 py-1 bg-neutral-100 dark:bg-neutral-800 rounded">6h</button>
+          <button onclick="generateDailyPlan()" class="px-3 py-1 bg-things-blue text-white rounded font-medium">Plan</button>
+        </div>
+        <div class="font-mono text-neutral-500">
+          Allocated: <span id="allocatedTimeText" class="font-semibold text-neutral-900 dark:text-neutral-100">0.0h</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="md:col-span-2 space-y-3">
+          <h3 class="text-xs font-semibold uppercase tracking-wider font-mono text-neutral-400">Sequential Flow</h3>
+          <div id="plannerScheduleContainer" class="space-y-2.5"></div>
+        </div>
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-4 space-y-3 h-fit shadow-things">
+          <h3 class="text-xs font-semibold uppercase tracking-wider font-mono text-neutral-400">Deferred to Someday</h3>
+          <div id="plannerExcludedContainer" class="space-y-2 text-xs"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 4: SOMEDAY (EISENHOWER MATRIX) -->
+    <section id="page-matrix" class="page-view space-y-5">
+      <div class="flex items-center gap-2 pb-2">
+        <i class="ph ph-folder-dashed text-amber-600 text-2xl"></i>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Someday Matrix</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-4 min-h-[250px] shadow-things">
+          <span class="text-xs font-bold text-rose-500 font-mono uppercase">Do First (Urgent & Important)</span>
+          <div id="quadrant-q1" class="space-y-2 mt-3"></div>
+        </div>
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-4 min-h-[250px] shadow-things">
+          <span class="text-xs font-bold text-things-blue font-mono uppercase">Schedule (Important)</span>
+          <div id="quadrant-q2" class="space-y-2 mt-3"></div>
+        </div>
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-4 min-h-[250px] shadow-things">
+          <span class="text-xs font-bold text-amber-500 font-mono uppercase">Delegate (Urgent)</span>
+          <div id="quadrant-q3" class="space-y-2 mt-3"></div>
+        </div>
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-4 min-h-[250px] shadow-things">
+          <span class="text-xs font-bold text-neutral-400 font-mono uppercase">Later (Backlog)</span>
+          <div id="quadrant-q4" class="space-y-2 mt-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 5: UPCOMING (CALENDAR) -->
+    <section id="page-calendar" class="page-view space-y-5">
+      <div class="flex items-center justify-between pb-2">
+        <div class="flex items-center gap-2">
+          <i class="ph ph-calendar text-rose-500 text-2xl"></i>
+          <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Upcoming</h2>
+        </div>
+        <div class="flex items-center gap-2 font-mono text-xs">
+          <button onclick="changeMonth(-1)" class="p-1 rounded bg-neutral-200/60 dark:bg-neutral-800"><i class="ph ph-caret-left"></i></button>
+          <span id="calendarMonthLabel" class="font-medium">October 2026</span>
+          <button onclick="changeMonth(1)" class="p-1 rounded bg-neutral-200/60 dark:bg-neutral-800"><i class="ph ph-caret-right"></i></button>
+          <button onclick="jumpToToday()" class="px-2 py-0.5 rounded bg-neutral-200/60 dark:bg-neutral-800 ml-1">Today</button>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-2xl p-4 shadow-things">
+        <div class="grid grid-cols-7 gap-1.5 mb-2 text-center text-xs font-mono uppercase text-neutral-400">
+          <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+        </div>
+        <div id="calendarGrid" class="grid grid-cols-7 gap-1.5"></div>
+      </div>
+
+      <div id="calendarDateDetails" class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-4 hidden shadow-things">
+        <div class="flex justify-between items-center pb-2 border-b border-neutral-100 dark:border-neutral-800 mb-2">
+          <h4 class="text-xs font-semibold font-mono uppercase" id="selectedDateTitle">Upcoming Deadlines</h4>
+        </div>
+        <div id="selectedDateTasks" class="space-y-2 text-xs"></div>
+      </div>
+    </section>
+
+    <!-- PAGE 6: LOGBOOK (ANALYTICS & ARCHIVE) -->
+    <section id="page-analytics" class="page-view space-y-5">
+      <div class="flex items-center gap-2 pb-2">
+        <i class="ph ph-book-open text-emerald-600 text-2xl"></i>
+        <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Logbook</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-4 shadow-things">
+          <div class="text-[10px] font-mono uppercase text-neutral-400">Lifetime Finished</div>
+          <div class="text-2xl font-bold mt-1 text-emerald-600" id="statCompletionPercent">0</div>
+        </div>
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-4 shadow-things">
+          <div class="text-[10px] font-mono uppercase text-neutral-400">Deep Work Time</div>
+          <div class="text-2xl font-bold mt-1" id="statTotalActual">0h 0m</div>
+        </div>
+        <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-xl p-4 shadow-things">
+          <div class="text-[10px] font-mono uppercase text-neutral-400">Estimation Accuracy</div>
+          <div class="text-2xl font-bold mt-1 text-things-blue" id="statAccuracyPercent">100%</div>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-2xl p-4 shadow-things space-y-3">
+        <h3 class="text-xs font-semibold font-mono uppercase text-neutral-400">Priority Distribution</h3>
+        <div id="analyticsPriorityChart" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- PAGE 7: FOCUS MODE -->
+    <section id="page-focus" class="page-view space-y-5 max-w-xl mx-auto">
+      <div class="text-center space-y-1">
+        <h2 class="text-2xl font-bold tracking-tight">Focus Session</h2>
+        <p class="text-xs text-neutral-400 font-mono">Pomodoro timer with distraction-free audio.</p>
+      </div>
+
+      <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-3xl p-8 text-center space-y-6 shadow-things">
+        <select id="focusTaskSelector" onchange="onFocusTaskChange()" class="w-full bg-neutral-100 dark:bg-neutral-800 rounded-xl px-3 py-2 text-xs font-medium"></select>
+        
+        <div class="flex justify-center gap-2 text-xs font-mono">
+          <button onclick="setFocusDuration(25)" class="duration-btn px-3 py-1 rounded-full bg-things-blue text-white font-medium" data-min="25">25m</button>
+          <button onclick="setFocusDuration(50)" class="duration-btn px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-500" data-min="50">50m</button>
+          <button onclick="setFocusDuration(5)" class="duration-btn px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-500" data-min="5">5m</button>
+        </div>
+
+        <div class="py-4 space-y-2">
+          <div class="text-6xl font-bold font-mono tracking-tight" id="timerDisplay">25:00</div>
+          <p class="text-[11px] font-mono text-neutral-400 uppercase" id="timerStatusLabel">Ready</p>
+        </div>
+
+        <div class="flex justify-center gap-2">
+          <button id="timerToggleBtn" onclick="toggleTimer()" class="px-5 py-2.5 bg-things-blue text-white rounded-full text-xs font-semibold shadow-float flex items-center gap-1.5">
+            <i class="ph ph-play" id="timerIcon"></i> <span id="timerBtnText">Start Focus</span>
+          </button>
+          <button onclick="markCurrentFocusTaskComplete()" class="px-4 py-2.5 bg-emerald-600 text-white rounded-full text-xs font-semibold shadow-sm flex items-center gap-1">
+            <i class="ph ph-check"></i> Complete
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 8: PREFERENCES -->
+    <section id="page-settings" class="page-view space-y-5 max-w-xl mx-auto">
+      <h2 class="text-2xl font-bold tracking-tight">Preferences</h2>
+      <div class="bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark rounded-2xl p-5 space-y-5 text-xs shadow-things">
+        <div>
+          <span class="font-semibold text-xs font-mono uppercase block mb-3">Backup & Data</span>
+          <div class="flex gap-2">
+            <button onclick="exportDataJSON()" class="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 rounded-lg">Export JSON</button>
+            <button onclick="clearAllData()" class="px-3 py-1.5 bg-rose-500/10 text-rose-500 rounded-lg">Clear All</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= THINGS 3 MAGIC FLOATING PLUS BUTTON ================= -->
+    <button onclick="openTaskModal()" title="New To-Do" class="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-things-blue hover:bg-blue-600 text-white flex items-center justify-center text-xl shadow-float transition-transform active:scale-95 z-30">
+      <i class="ph ph-plus-bold"></i>
+    </button>
+
+  </main>
+
+  <!-- ================= THINGS 3 SHEET MODAL (NEW / EDIT TASK) ================= -->
+  <div id="taskModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-things-cardDark border border-neutral-200 dark:border-things-borderDark rounded-2xl w-full max-w-lg shadow-modal overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-neutral-100 dark:border-neutral-800">
+        <h3 class="font-semibold text-sm" id="modalTitle">New To-Do</h3>
+        <button onclick="closeTaskModal()" class="text-neutral-400 hover:text-neutral-600">
+          <i class="ph ph-x"></i>
+        </button>
+      </div>
+
+      <form id="taskForm" class="p-5 space-y-4 text-xs">
+        <input type="hidden" id="formTaskId" />
+
+        <div>
+          <input type="text" id="formTitle" required placeholder="Title" class="w-full bg-transparent text-base font-medium placeholder:text-neutral-400" />
+        </div>
+
+        <div>
+          <textarea id="formDescription" rows="2" placeholder="Notes" class="w-full bg-transparent text-neutral-600 dark:text-neutral-300 placeholder:text-neutral-400 resize-none"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+          <div>
+            <label class="text-[10px] font-mono uppercase text-neutral-400 block mb-1">Tag / Area</label>
+            <input type="text" id="formCategory" required placeholder="e.g. Work, College" class="w-full bg-neutral-100 dark:bg-neutral-800 rounded-lg px-2.5 py-1.5 font-mono text-xs" />
+          </div>
+          <div>
+            <label class="text-[10px] font-mono uppercase text-neutral-400 block mb-1">When / Deadline</label>
+            <input type="datetime-local" id="formDeadline" required class="w-full bg-neutral-100 dark:bg-neutral-800 rounded-lg px-2.5 py-1.5 font-mono text-xs" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-2">
+          <div>
+            <label class="text-[10px] font-mono uppercase text-neutral-400 block mb-1">Duration</label>
+            <input type="number" id="formDuration" min="5" step="5" value="60" class="w-full bg-neutral-100 dark:bg-neutral-800 rounded-lg px-2 py-1.5 font-mono text-center text-xs" />
+          </div>
+          <div>
+            <label class="text-[10px] font-mono uppercase text-neutral-400 block mb-1">Importance</label>
+            <select id="formImportance" class="w-full bg-neutral-100 dark:bg-neutral-800 rounded-lg px-2 py-1.5 font-mono text-xs">
+              <option value="1">1 (Low)</option>
+              <option value="2">2 (Med)</option>
+              <option value="3">3 (High)</option>
+              <option value="4" selected>4 (Crit)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] font-mono uppercase text-neutral-400 block mb-1">Urgency</label>
+            <select id="formUrgency" class="w-full bg-neutral-100 dark:bg-neutral-800 rounded-lg px-2 py-1.5 font-mono text-xs">
+              <option value="1">1 (Low)</option>
+              <option value="2">2 (Norm)</option>
+              <option value="3" selected>3 (High)</option>
+              <option value="4">4 (Immed)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] font-mono uppercase text-neutral-400 block mb-1">Status</label>
+            <select id="formStatus" class="w-full bg-neutral-100 dark:bg-neutral-800 rounded-lg px-2 py-1.5 font-mono text-xs">
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+          <button type="button" onclick="closeTaskModal()" class="px-3 py-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800">Cancel</button>
+          <button type="submit" class="px-4 py-1.5 bg-things-blue text-white rounded-lg font-medium">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT CONTROLLER ================= -->
+  <script>
+    let authUser = JSON.parse(localStorage.getItem('chronos_auth_user') || 'null');
+
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+        return JSON.parse(jsonPayload);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    window.handleCredentialResponse = function(response) {
+      const payload = parseJwt(response.credential);
+      if (payload) {
+        authUser = {
+          name: payload.name,
+          email: payload.email,
+          picture: payload.picture,
+          uid: payload.sub
+        };
+        localStorage.setItem('chronos_auth_user', JSON.stringify(authUser));
+        checkAuthState();
+        showToast(`Signed in as ${authUser.name}`);
+        loadData();
+        navigateTo('dashboard');
+      }
+    };
+
+    function checkAuthState() {
+      const outBox = document.getElementById('loggedOutState');
+      const inBox = document.getElementById('loggedInState');
+
+      if (authUser) {
+        outBox.classList.add('hidden');
+        inBox.classList.remove('hidden');
+        document.getElementById('userFullName').textContent = authUser.name;
+        document.getElementById('userMail').textContent = authUser.email;
+        document.getElementById('userImg').src = authUser.picture;
+        document.getElementById('greetingHeading').textContent = `Today • ${authUser.name.split(' ')[0]}`;
+      } else {
+        outBox.classList.remove('hidden');
+        inBox.classList.add('hidden');
+        document.getElementById('greetingHeading').textContent = 'Today';
+      }
+    }
+
+    function logoutGoogle() {
+      localStorage.removeItem('chronos_auth_user');
+      authUser = null;
+      checkAuthState();
+      showToast("Signed out");
+      loadData();
+      navigateTo('dashboard');
+    }
+
+    /* -------------------------------------------------------------
+       STATE MANAGEMENT & LOCAL STORAGE
+    -------------------------------------------------------------- */
+    function getActiveStorageKey() {
+      return authUser ? `chronos_tasks_${authUser.uid}` : 'chronos_clean_v2';
+    }
+
+    let tasks = [];
+    let dailyCapacityHours = 4.0;
+    let activeFocusTaskId = null;
+    let focusTimerInterval = null;
+    let focusSecondsTotal = 25 * 60;
+    let focusSecondsRemaining = 25 * 60;
+    let currentCalendarDate = new Date();
+    let currentTaskViewMode = 'list';
+
+    function calculateTaskPriority(task) {
+      const now = Date.now();
+      const deadlineTime = new Date(task.deadline).getTime();
+      const hoursRemaining = Math.max(0.5, (deadlineTime - now) / (1000 * 60 * 60));
+
+      let score = (task.importance / 4) * 40;
+      if (hoursRemaining <= 12) score += 35;
+      else if (hoursRemaining <= 24) score += 28;
+      else if (hoursRemaining <= 48) score += 18;
+      else score += 8;
+
+      score += (task.urgency / 4) * 25;
+      if (deadlineTime < now && task.status !== 'Completed') score += 50;
+
+      let level = "LOW";
+      if (score >= 80) level = "CRITICAL";
+      else if (score >= 60) level = "HIGH";
+      else if (score >= 40) level = "MEDIUM";
+
+      return { score: parseFloat(score.toFixed(1)), level };
+    }
+
+    function evaluateDeadlineRisk(task) {
+      if (task.status === 'Completed') return { risk: 'SAFE', label: 'Done', color: 'emerald' };
+      const now = Date.now();
+      const deadlineTime = new Date(task.deadline).getTime();
+      const hoursUntilDeadline = (deadlineTime - now) / (1000 * 60 * 60);
+
+      if (hoursUntilDeadline < 0) {
+        return { risk: 'CRITICAL', label: 'Overdue', message: 'Past deadline.', color: 'rose' };
+      }
+      if (hoursUntilDeadline < 24) {
+        return { risk: 'CRITICAL', label: 'Due Today', message: 'Finishes within 24 hours.', color: 'amber' };
+      }
+      return { risk: 'SAFE', label: 'Upcoming', message: 'Sufficient buffer.', color: 'emerald' };
+    }
+
+    function loadData() {
+      const key = getActiveStorageKey();
+      const stored = localStorage.getItem(key);
+      tasks = stored ? JSON.parse(stored) : [];
+      refreshDerivedScores();
+      updateNavBadges();
+    }
+
+    function saveData() {
+      const key = getActiveStorageKey();
+      localStorage.setItem(key, JSON.stringify(tasks));
+      updateNavBadges();
+    }
+
+    function refreshDerivedScores() {
+      tasks.forEach(t => {
+        const evalResult = calculateTaskPriority(t);
+        t.priorityScore = evalResult.score;
+        t.priorityLevel = evalResult.level;
+      });
+    }
+
+    function updateNavBadges() {
+      const activeCount = tasks.filter(t => t.status !== 'Completed').length;
+      const completedCount = tasks.filter(t => t.status === 'Completed').length;
+      document.getElementById('storageCountBadge').textContent = `${tasks.length} to-dos`;
+      document.getElementById('navTaskCountBadge').textContent = activeCount;
+      document.getElementById('navTodayBadge').textContent = activeCount;
+      document.getElementById('navLogbookBadge').textContent = completedCount;
+    }
+
+    /* -------------------------------------------------------------
+       NAVIGATION
+    -------------------------------------------------------------- */
+    function navigateTo(pageId) {
+      document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById(`page-${pageId}`);
+      if (target) target.classList.add('active');
+
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        if (btn.getAttribute('data-page') === pageId) {
+          btn.classList.add('bg-neutral-200/60', 'dark:bg-neutral-800', 'font-semibold');
+        } else {
+          btn.classList.remove('bg-neutral-200/60', 'dark:bg-neutral-800', 'font-semibold');
+        }
+      });
+
+      const sidebar = document.getElementById('sidebarNav');
+      const backdrop = document.getElementById('mobileNavBackdrop');
+      sidebar.classList.add('-translate-x-full');
+      backdrop.classList.add('hidden');
+
+      if (pageId === 'dashboard') renderDashboard();
+      if (pageId === 'tasks') renderTaskList();
+      if (pageId === 'planner') generateDailyPlan();
+      if (pageId === 'matrix') renderMatrix();
+      if (pageId === 'calendar') renderCalendar();
+      if (pageId === 'focus') renderFocusPage();
+      if (pageId === 'analytics') renderAnalytics();
+    }
+
+    function toggleMobileNav() {
+      document.getElementById('sidebarNav').classList.toggle('-translate-x-full');
+      document.getElementById('mobileNavBackdrop').classList.toggle('hidden');
+    }
+
+    function showToast(message) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'px-3 py-2 rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-xs font-medium shadow-things flex items-center justify-between gap-3';
+      toast.innerHTML = `<span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 2500);
+    }
+
+    /* -------------------------------------------------------------
+       DASHBOARD (TODAY VIEW)
+    -------------------------------------------------------------- */
+    function renderDashboard() {
+      refreshDerivedScores();
+      const activeTasks = tasks.filter(t => t.status !== 'Completed');
+      const allCompletedTasks = tasks.filter(t => t.status === 'Completed');
+
+      const completedToday = allCompletedTasks.filter(t => {
+        if (!t.completedAt) return false;
+        return new Date(t.completedAt).toDateString() === new Date().toDateString();
+      });
+
+      const now = new Date();
+      const overdueTasks = activeTasks.filter(t => new Date(t.deadline).getTime() < now.getTime());
+      const dueTodayTasks = activeTasks.filter(t => new Date(t.deadline).toDateString() === now.toDateString());
+      const totalWorkMins = activeTasks.reduce((acc, t) => acc + (t.estimatedDuration || 0), 0);
+
+      document.getElementById('metricPending').textContent = activeTasks.length;
+      document.getElementById('metricWorkRemaining').textContent = `${(totalWorkMins / 60).toFixed(1)}h estimated`;
+      document.getElementById('metricOverdue').textContent = overdueTasks.length;
+      document.getElementById('metricDueToday').textContent = `${dueTodayTasks.length} due today`;
+
+      // Today vs Lifetime Completed
+      document.getElementById('metricCompletedToday').textContent = completedToday.length;
+      document.getElementById('metricTotalCompleted').textContent = allCompletedTasks.length;
+
+      // Spotlight
+      const spotlightEl = document.getElementById('spotlightContent');
+      const sortedActive = [...activeTasks].sort((a, b) => b.priorityScore - a.priorityScore);
+
+      if (sortedActive.length > 0) {
+        const topTask = sortedActive[0];
+        spotlightEl.innerHTML = `
+          <div class="flex items-center justify-between gap-4">
+            <div class="space-y-1 min-w-0">
+              <span class="text-[10px] font-mono text-things-blue font-semibold uppercase">Focus Target</span>
+              <h3 class="text-base font-semibold truncate">${topTask.title}</h3>
+              <p class="text-xs text-neutral-400 font-mono">${topTask.category} • ${topTask.estimatedDuration}m • Due ${new Date(topTask.deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
+            </div>
+            <button onclick="startFocusWithTask('${topTask.id}')" class="px-3.5 py-1.5 bg-things-blue text-white rounded-full text-xs font-semibold shadow-sm shrink-0">
+              Start
+            </button>
+          </div>
+        `;
+      } else {
+        spotlightEl.innerHTML = `
+          <div class="text-center py-3">
+            <p class="text-xs text-neutral-400 font-mono">No tasks in Today. Press + to add.</p>
+          </div>
+        `;
+      }
+
+      // Priority List
+      const topQueue = document.getElementById('topPriorityContainer');
+      topQueue.innerHTML = '';
+      sortedActive.slice(0, 5).forEach(task => {
+        const card = document.createElement('div');
+        card.className = 'px-3.5 py-2.5 rounded-xl bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark flex items-center justify-between text-xs shadow-sm';
+        card.innerHTML = `
+          <div class="flex items-center gap-3">
+            <button onclick="toggleTaskCompleted('${task.id}')" class="text-neutral-400 hover:text-things-blue transition">
+              <i class="ph ph-circle text-base"></i>
+            </button>
+            <span class="font-medium">${task.title}</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-400">${task.category}</span>
+          </div>
+          <span class="text-[10px] font-mono text-neutral-400">${task.estimatedDuration}m</span>
+        `;
+        topQueue.appendChild(card);
+      });
+
+      // Alerts List
+      const riskContainer = document.getElementById('riskListContainer');
+      riskContainer.innerHTML = '';
+      const atRiskTasks = activeTasks.map(t => ({ task: t, risk: evaluateDeadlineRisk(t) })).filter(i => i.risk.risk !== 'SAFE');
+
+      if (atRiskTasks.length === 0) {
+        riskContainer.innerHTML = `<p class="text-xs text-neutral-400 font-mono">Everything on track.</p>`;
+      } else {
+        atRiskTasks.slice(0, 3).forEach(({ task, risk }) => {
+          const card = document.createElement('div');
+          card.className = 'p-2.5 rounded-xl bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark flex items-center justify-between text-xs shadow-sm';
+          card.innerHTML = `
+            <span>${task.title}</span>
+            <span class="text-[10px] font-mono text-rose-500">${risk.label}</span>
+          `;
+          riskContainer.appendChild(card);
+        });
+      }
+    }
+
+    /* -------------------------------------------------------------
+       INLINE SUBMISSION & ALL TASKS
+    -------------------------------------------------------------- */
+    function handleInlineTaskSubmit(e) {
+      e.preventDefault();
+      const titleInput = document.getElementById('inlineTaskTitle');
+      const catInput = document.getElementById('inlineTaskCategory');
+      const durInput = document.getElementById('inlineTaskDuration');
+
+      const title = titleInput.value.trim();
+      if (!title) return;
+
+      const category = catInput.value.trim() || 'Inbox';
+      const duration = parseInt(durInput.value) || 60;
+      const tomorrow = new Date(Date.now() + 24 * 3600 * 1000);
+
+      const newTask = {
+        id: `task-${Date.now()}`,
+        title,
+        description: '',
+        category,
+        deadline: tomorrow.toISOString(),
+        estimatedDuration: duration,
+        importance: 3,
+        urgency: 3,
+        status: 'Pending',
+        createdAt: new Date().toISOString(),
+        completedAt: null
+      };
+
+      tasks.unshift(newTask);
+      saveData();
+      refreshDerivedScores();
+      titleInput.value = '';
+      renderTaskList();
+      showToast('Added to Inbox');
+    }
+
+    function setTaskViewMode(mode) {
+      currentTaskViewMode = mode;
+      const listBtn = document.getElementById('viewModeListBtn');
+      const boardBtn = document.getElementById('viewModeBoardBtn');
+      const listView = document.getElementById('taskListView');
+      const boardView = document.getElementById('taskBoardView');
+
+      if (mode === 'list') {
+        listBtn.className = 'px-2.5 py-1 rounded bg-white dark:bg-neutral-700 shadow-sm font-medium';
+        boardBtn.className = 'px-2.5 py-1 rounded text-neutral-500';
+        listView.classList.remove('hidden');
+        boardView.classList.add('hidden');
+        renderTaskList();
+      } else {
+        boardBtn.className = 'px-2.5 py-1 rounded bg-white dark:bg-neutral-700 shadow-sm font-medium';
+        listBtn.className = 'px-2.5 py-1 rounded text-neutral-500';
+        boardView.classList.remove('hidden');
+        listView.classList.add('hidden');
+        renderKanbanBoard();
+      }
+    }
+
+    function renderTaskList() {
+      if (currentTaskViewMode === 'board') {
+        renderKanbanBoard();
+        return;
+      }
+      refreshDerivedScores();
+      populateCategoryFilters();
+
+      const searchVal = document.getElementById('taskSearchInput').value.toLowerCase();
+      const priorityFilter = document.getElementById('filterPriority').value;
+      const statusFilter = document.getElementById('filterStatus').value;
+      const categoryFilter = document.getElementById('filterCategory').value;
+
+      let filtered = tasks.filter(t => {
+        const matchesSearch = t.title.toLowerCase().includes(searchVal);
+        const matchesPriority = priorityFilter === 'ALL' || t.priorityLevel === priorityFilter;
+        let matchesStatus = statusFilter === 'ACTIVE' ? t.status !== 'Completed' : (statusFilter === 'ALL' ? true : t.status === statusFilter);
+        const matchesCategory = categoryFilter === 'ALL' || t.category === categoryFilter;
+        return matchesSearch && matchesPriority && matchesStatus && matchesCategory;
+      });
+
+      const listContainer = document.getElementById('fullTaskList');
+      listContainer.innerHTML = '';
+
+      if (filtered.length === 0) {
+        listContainer.innerHTML = `<div class="p-8 text-center text-xs font-mono text-neutral-400">No items found.</div>`;
+        return;
+      }
+
+      filtered.forEach(task => {
+        const isDone = task.status === 'Completed';
+        const row = document.createElement('div');
+        row.className = `px-3.5 py-2.5 rounded-xl bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark flex items-center justify-between text-xs shadow-things transition ${isDone ? 'opacity-40' : ''}`;
+        row.innerHTML = `
+          <div class="flex items-center gap-3 min-w-0">
+            <button onclick="toggleTaskCompleted('${task.id}')" class="text-neutral-400 hover:text-things-blue transition shrink-0">
+              <i class="ph ${isDone ? 'ph-check-circle-fill text-things-blue' : 'ph-circle'} text-base"></i>
+            </button>
+            <span class="font-medium truncate ${isDone ? 'line-through text-neutral-400' : ''}">${task.title}</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-400">${task.category}</span>
+          </div>
+          <div class="flex items-center gap-3 text-neutral-400 font-mono text-[11px] shrink-0">
+            <span>${task.estimatedDuration}m</span>
+            <button onclick="openEditTaskModal('${task.id}')" class="hover:text-neutral-700 dark:hover:text-neutral-200"><i class="ph ph-pencil-simple"></i></button>
+            <button onclick="deleteTask('${task.id}')" class="hover:text-rose-500"><i class="ph ph-trash"></i></button>
+          </div>
+        `;
+        listContainer.appendChild(row);
+      });
+    }
+
+    function renderKanbanBoard() {
+      const cols = {
+        Pending: document.getElementById('boardColumnPending'),
+        'In Progress': document.getElementById('boardColumnInProgress'),
+        Completed: document.getElementById('boardColumnCompleted')
+      };
+      Object.values(cols).forEach(c => c.innerHTML = '');
+
+      tasks.forEach(task => {
+        const col = cols[task.status] || cols.Pending;
+        const card = document.createElement('div');
+        card.className = 'p-2.5 rounded-lg bg-neutral-50 dark:bg-neutral-800 text-xs flex justify-between items-center';
+        card.innerHTML = `
+          <span class="truncate">${task.title}</span>
+          <button onclick="setTaskStatus('${task.id}', '${task.status === 'Completed' ? 'Pending' : 'Completed'}')">
+            <i class="ph ${task.status === 'Completed' ? 'ph-check' : 'ph-arrow-right'} text-neutral-400"></i>
+          </button>
+        `;
+        col.appendChild(card);
+      });
+    }
+
+    function setTaskStatus(taskId, newStatus) {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+      task.status = newStatus;
+      task.completedAt = newStatus === 'Completed' ? new Date().toISOString() : null;
+      saveData();
+      renderKanbanBoard();
+    }
+
+    function populateCategoryFilters() {
+      const select = document.getElementById('filterCategory');
+      const cats = Array.from(new Set(tasks.map(t => t.category).filter(Boolean)));
+      const curr = select.value;
+      select.innerHTML = '<option value="ALL">All Areas</option>';
+      cats.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        if (c === curr) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    /* -------------------------------------------------------------
+       ANYTIME (KNAPSACK PLANNER)
+    -------------------------------------------------------------- */
+    function setPlannerCapacity(hours) {
+      document.getElementById('plannerCapacityInput').value = hours;
+      generateDailyPlan();
+    }
+
+    function generateDailyPlan() {
+      const cap = parseFloat(document.getElementById('plannerCapacityInput').value) || 4.0;
+      dailyCapacityHours = cap;
+      const totalAllowedMinutes = dailyCapacityHours * 60;
+      const activeTasks = tasks.filter(t => t.status !== 'Completed');
+
+      let accumulated = 0;
+      const planned = [];
+      const deferred = [];
+
+      activeTasks.forEach(task => {
+        if (accumulated + task.estimatedDuration <= totalAllowedMinutes) {
+          accumulated += task.estimatedDuration;
+          planned.push(task);
+        } else {
+          deferred.push(task);
+        }
+      });
+
+      document.getElementById('allocatedTimeText').textContent = `${(accumulated / 60).toFixed(1)}h / ${dailyCapacityHours.toFixed(1)}h`;
+
+      const container = document.getElementById('plannerScheduleContainer');
+      container.innerHTML = '';
+      planned.forEach(task => {
+        const item = document.createElement('div');
+        item.className = 'px-3.5 py-2.5 rounded-xl bg-white dark:bg-things-cardDark border border-neutral-200/70 dark:border-things-borderDark flex justify-between items-center text-xs shadow-sm';
+        item.innerHTML = `
+          <span>${task.title}</span>
+          <span class="font-mono text-neutral-400">${task.estimatedDuration}m</span>
+        `;
+        container.appendChild(item);
+      });
+
+      const defContainer = document.getElementById('plannerExcludedContainer');
+      defContainer.innerHTML = '';
+      deferred.forEach(task => {
+        const item = document.createElement('div');
+        item.className = 'truncate text-neutral-400 font-mono';
+        item.textContent = `• ${task.title}`;
+        defContainer.appendChild(item);
+      });
+    }
+
+    /* -------------------------------------------------------------
+       SOMEDAY (MATRIX)
+    -------------------------------------------------------------- */
+    function renderMatrix() {
+      const q = { q1: [], q2: [], q3: [], q4: [] };
+      tasks.filter(t => t.status !== 'Completed').forEach(t => {
+        if (t.importance >= 3 && t.urgency >= 3) q.q1.push(t);
+        else if (t.importance >= 3) q.q2.push(t);
+        else if (t.urgency >= 3) q.q3.push(t);
+        else q.q4.push(t);
+      });
+
+      ['q1', 'q2', 'q3', 'q4'].forEach(id => {
+        const c = document.getElementById(`quadrant-${id}`);
+        c.innerHTML = '';
+        q[id].forEach(t => {
+          const div = document.createElement('div');
+          div.className = 'p-2 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-xs truncate';
+          div.textContent = t.title;
+          c.appendChild(div);
+        });
+      });
+    }
+
+    /* -------------------------------------------------------------
+       UPCOMING (CALENDAR - ONLY ACTIVE DEADLINES)
+    -------------------------------------------------------------- */
+    function renderCalendar() {
+      const year = currentCalendarDate.getFullYear();
+      const month = currentCalendarDate.getMonth();
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      document.getElementById('calendarMonthLabel').textContent = `${monthNames[month]} ${year}`;
+
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      for (let i = 0; i < firstDay; i++) {
+        grid.appendChild(document.createElement('div'));
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const slotDate = new Date(year, month, d);
+        const dateStr = slotDate.toDateString();
+
+        // FIX: Completed tasks calendar me appear nahi honge
+        const dayTasks = tasks.filter(t => t.status !== 'Completed' && new Date(t.deadline).toDateString() === dateStr);
+        const isToday = new Date().toDateString() === dateStr;
+
+        const tile = document.createElement('div');
+        tile.className = 'h-16 p-1 rounded-xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-100 dark:border-neutral-800 flex flex-col justify-between cursor-pointer hover:border-things-blue transition';
+        tile.onclick = () => showCalendarDayTasks(dateStr, dayTasks);
+
+        tile.innerHTML = `
+          <span class="font-mono text-xs ${isToday ? 'w-5 h-5 rounded-full bg-things-blue text-white flex items-center justify-center font-bold' : 'text-neutral-400'}">${d}</span>
+          ${dayTasks.length ? `<span class="w-1.5 h-1.5 rounded-full bg-things-blue mx-auto mb-1"></span>` : ''}
+        `;
+        grid.appendChild(tile);
+      }
+    }
+
+    function changeMonth(delta) {
+      currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+      renderCalendar();
+    }
+
+    function jumpToToday() {
+      currentCalendarDate = new Date();
+      renderCalendar();
+    }
+
+    function showCalendarDayTasks(dateStr, dayTasks) {
+      const panel = document.getElementById('calendarDateDetails');
+      panel.classList.remove('hidden');
+      document.getElementById('selectedDateTitle').textContent = `Deadlines on ${dateStr}`;
+      const container = document.getElementById('selectedDateTasks');
+      container.innerHTML = '';
+      if (dayTasks.length === 0) {
+        container.innerHTML = `<span class="text-neutral-400 font-mono">No deadlines scheduled.</span>`;
+        return;
+      }
+      dayTasks.forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'p-2 rounded bg-neutral-100 dark:bg-neutral-800 flex justify-between';
+        row.innerHTML = `<span>${t.title}</span><span class="font-mono text-neutral-400">${t.estimatedDuration}m</span>`;
+        container.appendChild(row);
+      });
+    }
+
+    /* -------------------------------------------------------------
+       LOGBOOK (METRICS)
+    -------------------------------------------------------------- */
+    function renderAnalytics() {
+      const completed = tasks.filter(t => t.status === 'Completed').length;
+      document.getElementById('statCompletionPercent').textContent = completed;
+      const totalActualMins = tasks.reduce((acc, t) => acc + (t.actualDuration || 0), 0);
+      document.getElementById('statTotalActual').textContent = `${Math.floor(totalActualMins / 60)}h ${totalActualMins % 60}m`;
+    }
+
+    /* -------------------------------------------------------------
+       FOCUS ENGINE
+    -------------------------------------------------------------- */
+    function renderFocusPage() {
+      const sel = document.getElementById('focusTaskSelector');
+      sel.innerHTML = '';
+      const active = tasks.filter(t => t.status !== 'Completed');
+      active.forEach(t => {
+        const o = document.createElement('option');
+        o.value = t.id;
+        o.textContent = t.title;
+        sel.appendChild(o);
+      });
+      activeFocusTaskId = active[0]?.id || null;
+    }
+
+    function onFocusTaskChange() {
+      activeFocusTaskId = document.getElementById('focusTaskSelector').value;
+    }
+
+    function startFocusWithTask(id) {
+      activeFocusTaskId = id;
+      navigateTo('focus');
+    }
+
+    function setFocusDuration(min) {
+      if (focusTimerInterval) clearInterval(focusTimerInterval);
+      focusTimerInterval = null;
+      focusSecondsRemaining = min * 60;
+      focusSecondsTotal = min * 60;
+      updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(focusSecondsRemaining / 60);
+      const s = focusSecondsRemaining % 60;
+      document.getElementById('timerDisplay').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function toggleTimer() {
+      if (focusTimerInterval) {
+        clearInterval(focusTimerInterval);
+        focusTimerInterval = null;
+        document.getElementById('timerBtnText').textContent = 'Resume';
+      } else {
+        document.getElementById('timerBtnText').textContent = 'Pause';
+        focusTimerInterval = setInterval(() => {
+          if (focusSecondsRemaining > 0) {
+            focusSecondsRemaining--;
+            updateTimerDisplay();
+          } else {
+            clearInterval(focusTimerInterval);
+            focusTimerInterval = null;
+            showToast('Block Completed');
+          }
+        }, 1000);
+      }
+    }
+
+    function markCurrentFocusTaskComplete() {
+      if (activeFocusTaskId) toggleTaskCompleted(activeFocusTaskId);
+      renderFocusPage();
+    }
+
+    /* -------------------------------------------------------------
+       MODAL: CREATE / EDIT
+    -------------------------------------------------------------- */
+    function openTaskModal() {
+      document.getElementById('modalTitle').textContent = 'New To-Do';
+      document.getElementById('taskForm').reset();
+      document.getElementById('formTaskId').value = '';
+      const tomorrow = new Date(Date.now() + 24 * 3600 * 1000);
+      tomorrow.setMinutes(tomorrow.getMinutes() - tomorrow.getTimezoneOffset());
+      document.getElementById('formDeadline').value = tomorrow.toISOString().slice(0, 16);
+      document.getElementById('taskModal').classList.remove('hidden');
+      document.getElementById('formTitle').focus();
+    }
+
+    function openEditTaskModal(id) {
+      const t = tasks.find(x => x.id === id);
+      if (!t) return;
+      document.getElementById('modalTitle').textContent = 'Edit To-Do';
+      document.getElementById('formTaskId').value = t.id;
+      document.getElementById('formTitle').value = t.title;
+      document.getElementById('formDescription').value = t.description || '';
+      document.getElementById('formCategory').value = t.category;
+      document.getElementById('formDuration').value = t.estimatedDuration;
+      document.getElementById('taskModal').classList.remove('hidden');
+    }
+
+    function closeTaskModal() {
+      document.getElementById('taskModal').classList.add('hidden');
+    }
+
+    document.getElementById('taskForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = document.getElementById('formTaskId').value;
+      const title = document.getElementById('formTitle').value.trim();
+      const description = document.getElementById('formDescription').value.trim();
+      const category = document.getElementById('formCategory').value.trim();
+      const deadline = new Date(document.getElementById('formDeadline').value).toISOString();
+      const duration = parseInt(document.getElementById('formDuration').value);
+      const status = document.getElementById('formStatus').value;
+
+      if (id) {
+        const idx = tasks.findIndex(x => x.id === id);
+        if (idx !== -1) {
+          tasks[idx] = { ...tasks[idx], title, description, category, deadline, estimatedDuration: duration, status };
+        }
+      } else {
+        tasks.unshift({
+          id: `task-${Date.now()}`,
+          title, description, category, deadline, estimatedDuration: duration,
+          importance: 3, urgency: 3, status, createdAt: new Date().toISOString(), completedAt: null
+        });
+      }
+
+      saveData();
+      closeTaskModal();
+      navigateTo('dashboard');
+    });
+
+    function toggleTaskCompleted(id) {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+      task.status = task.status === 'Completed' ? 'Pending' : 'Completed';
+      task.completedAt = task.status === 'Completed' ? new Date().toISOString() : null;
+      saveData();
+      const activePage = document.querySelector('.page-view.active').id.replace('page-', '');
+      navigateTo(activePage);
+    }
+
+    function deleteTask(id) {
+      tasks = tasks.filter(t => t.id !== id);
+      saveData();
+      renderTaskList();
+    }
+
+    /* -------------------------------------------------------------
+       THEME & SHORTCUTS
+    -------------------------------------------------------------- */
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('chronos_theme', isDark ? 'dark' : 'light');
+    }
+
+    function initTheme() {
+      if (localStorage.getItem('chronos_theme') === 'light') {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+
+    function exportDataJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tasks, null, 2));
+      const a = document.createElement('a');
+      a.href = dataStr;
+      a.download = `things_backup.json`;
+      a.click();
+    }
+
+    function clearAllData() {
+      if (confirm('Clear all items?')) {
+        tasks = [];
+        saveData();
+        navigateTo('dashboard');
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+      if (e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        openTaskModal();
+      }
+    });
+
+    setInterval(() => {
+      document.getElementById('currentTimeDisplay').textContent = new Date().toLocaleTimeString();
+    }, 1000);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      checkAuthState();
+      loadData();
+      navigateTo('dashboard');
+    });
+  </script>
+</body>
+</html>
